@@ -148,15 +148,6 @@ public class Pauvocoder {
     }
 
     /**
-     * Play the wav
-     *
-     * @param wav
-     */
-    public static void joue(double[] wav) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    /**
      * Add an echo to the wav
      *
      * @param wav
@@ -174,7 +165,8 @@ public class Pauvocoder {
      * @param wav
      */
     public static void displayWaveform(double[] wav) {
-        int n = wav.length;
+        int n = 50_000;
+        System.out.println(n);
         StdDraw.enableDoubleBuffering();
         // Configurer StdDraw
         StdDraw.setCanvasSize(800, 400);
