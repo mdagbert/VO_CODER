@@ -1,17 +1,7 @@
-import java.util.Arrays;
 import java.util.Scanner;
 import static java.lang.System.exit;
-import static java.lang.System.in;
 
 public class Pauvocoder {
-
-    // Processing SEQUENCE size (100 msec with 44100Hz samplerate)
-    final static int SEQUENCE = StdAudio.SAMPLE_RATE / 10;
-
-    // Overlapping size (20 msec)
-    final static int OVERLAP = SEQUENCE / 5;
-    // Best OVERLAP offset seeking window (15 msec)
-    final static int SEEK_WINDOW = 3 * OVERLAP / 4;
 
     public static void main(String[] args) {
         if (args.length < 2) {
@@ -98,10 +88,10 @@ public class Pauvocoder {
     }
 
     /**
-     * Pause l'exécution jusqu'à ce que l'utilisateur appuie sur Entrée.
+     * Pause the script until the user press enter
      *
-     * @param scanner Instance de Scanner pour lire l'entrée.
-     * @param message Message à afficher pour indiquer la pause.
+     * @param scanner Instance of Scanner
+     * @param message Message to show for the pause.
      */
     private static void waitForNextStep(Scanner scanner, String message) {
         System.out.println(message);
@@ -109,10 +99,9 @@ public class Pauvocoder {
     }
 
     /**
-     * Resample inputWav with freqScale
-     * @apiNote We didn't understood
-     * @param inputWav
-     * @param freqScale
+     * Resample the input to make it longer or shorter depending on freqScale ( shorter for lower voice and longer for higher voice )
+     * @param inputWav the .wav input
+     * @param freqScale > 0, don't make it too big it is advisable to not got more than 1.9
      * @return resampled wav
      */
     public static double[] resample(double[] inputWav, double freqScale) {
@@ -149,10 +138,10 @@ public class Pauvocoder {
 
 
     /**
-     * Simple dilatation, without any overlapping
+     * Simple dilatation, make the sound back to it's original length and keep the "distortion"
      *
-     * @param input the array of the song
-     * @param freqScale dialatation factor
+     * @param input the outpout of the resample function
+     * @param freqScale dialatation factor, the same as the resample
      * @return dilated wav
      */
     public static double[] vocodeSimple(double[] input, double freqScale) {
@@ -190,9 +179,9 @@ public class Pauvocoder {
     /**
      * Simple dilatation, with overlapping
      *
-     * @apiNote This function is essentially the same as the precedent, but instead of using "square" we use a smooth windows, also called a hann window, the hann window is not used for that, but we can use the same formula since we want to separate some part of the audio ( observation )
-     * @param input
-     * @param freqScale factor
+     * @apiNote This function is essentially the same as the vocodeSimple, but instead of using "square" we use a smooth windows, also called a hann window, the hann window is not used for that, but we can use the same formula since we want to separate some part of the audio ( observation )
+     * @param input the outpout of the function resample
+     * @param freqScale dilatation factor, same as the resample
      * @return dilated wav
      */
     public static double[] vocodeSimpleOver(double[] input, double freqScale) {
@@ -242,9 +231,10 @@ public class Pauvocoder {
     /**
      * Simple dilatation, with overlapping and maximum cross correlation search
      *
+     * @apiNote We didn't understood how to implement this part
      * @param input
-     * @param freqScale factor
-     * @return dilated wav
+     * @param freqScale
+     * @return
      */
     public static double[] vocodeSimpleOverCross(double[] input, double freqScale) {
         System.out.println("Could not implement this function :(");
@@ -254,19 +244,50 @@ public class Pauvocoder {
     /**
      * Add an echo to the wav
      *
-     * @param wav
-     * @param delay in msec
-     * @param gain
+     * @param input the outpout of a dilatation function
+     * @param delayMs in msec
+     * @param attn the attenuation, must be between 0 and 1 ( 0-100% )
      * @return wav with echo
      */
-    public static double[] echo(double[] wav, double delay, double gain) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public static double[] echo(double[] input, double delayMs, double attn) {
+        if (delayMs <= 0) {
+            throw new IllegalArgumentException("Delay must be greater than 0 milliseconds.");
+        }
+        if (attn < 0 || attn > 1) {
+            throw new IllegalArgumentException("Attenuation must be between 0 and 1.");
+        }
+
+        int sampleRate = StdAudio.SAMPLE_RATE; // Sampling rate
+        int delaySamples = (int) (delayMs / 1000.0 * sampleRate); // Delay in number of samples
+
+        // Output array with the same size as the input
+        double[] output = new double[input.length];
+
+        for (int i = 0; i < input.length; i++) {
+            // Add the original signal
+            output[i] = input[i];
+
+            // Add the echo if applicable
+            if (i >= delaySamples) {
+                output[i] += input[i - delaySamples] * attn;
+            }
+
+            // Limit values to the range [-1, 1]
+            if (output[i] > 1.0) {
+                output[i] = 1.0;
+            } else if (output[i] < -1.0) {
+                output[i] = -1.0;
+            }
+        }
+
+        return output;
     }
+
 
     /**
      * Display the waveform
      *
-     * @param wav
+     * @param wav outpout of any function or just the original wav file
      */
     public static void displayWaveform(double[] wav) {
         int n = wav.length;
